@@ -1,11 +1,21 @@
 package Producto;
 
+import java.util.ArrayList;
+
 public class Producto {
     private String nombre;
     private double precio;
     private String categoria;
     private String fechaVencimiento;
     private int cantidad;
+
+    //#####################################################################################################//
+    //Pieza de codigo temporal para hacer el codigo capaz de correr en lo que se agrega lo faltante
+    //favor quitarlo una vez ya este integrado el codigo funcional
+    private ArrayList<String> listaImagenes = new ArrayList<>();
+    public ArrayList<String> getListaImagenes() { return listaImagenes; }
+    public void agregarImagen(String ruta) { this.listaImagenes.add(ruta); }
+    //#####################################################################################################//
 
     public Producto() {}
 
