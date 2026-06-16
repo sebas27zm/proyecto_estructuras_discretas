@@ -1,9 +1,19 @@
+import java.io.IOException;
 import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+
+import Helpers.Categoria;
+import Helpers.CodigoGenerator;
 import ListaProductos.ListaProductos;
 import Producto.Producto;
 import Nodo.Nodo;
 
 public class Main {
+
+    // Formato esperado: yyyy-MM-dd (ejemplo: 2026-06-15)
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public static void main(String[] args) {
         ListaProductos lista = new ListaProductos();
@@ -59,15 +69,39 @@ public class Main {
         System.out.print("Precio: ");
         p.setPrecio(Double.parseDouble(sc.nextLine()));
 
-        System.out.print("Categoria: ");
-        p.setCategoria(sc.nextLine());
+        System.out.println("Seleccione la categoría:");
+        for (Categoria c : Categoria.values()) {
+            System.out.println("- " + c);
+        }
+        String catInput = sc.nextLine().toUpperCase();
 
-        System.out.print("Fecha de vencimiento (vacio si no aplica): ");
+        try {
+            p.setCategoria(Categoria.valueOf(catInput));
+        } catch (IllegalArgumentException e) {
+            System.out.println("Categoría inválida, se asignará TECNOLOGIA por defecto.");
+            p.setCategoria(Categoria.TECNOLOGIA);
+        }
+
+        // Generar código único con prefijo de categoría
+        p.setCodigo(CodigoGenerator.generarCodigoConCategoria(p.getCategoria()));
+
+        System.out.print("Fecha de vencimiento (formato yyyy-MM-dd, vacío si no aplica): ");
         String fecha = sc.nextLine();
-        p.setFechaVencimiento(fecha.isEmpty() ? null : fecha);
+        if (fecha.isEmpty()) {
+            p.setFechaVencimiento(null);
+        } else {
+            try {
+                p.setFechaVencimiento(LocalDate.parse(fecha, FORMATTER));
+            } catch (DateTimeParseException e) {
+                System.out.println("Formato inválido, se dejará sin fecha.");
+                p.setFechaVencimiento(null);
+            }
+        }
 
         System.out.print("Cantidad: ");
         p.setCantidad(Integer.parseInt(sc.nextLine()));
+
+        agregarImagenProducto(sc, p);
 
         System.out.print("Insertar al inicio o al final? (i/f): ");
         String pos = sc.nextLine();
@@ -99,12 +133,20 @@ public class Main {
         System.out.print("Nuevo precio: ");
         nuevosDatos.setPrecio(Double.parseDouble(sc.nextLine()));
 
-        System.out.print("Nueva categoria: ");
-        nuevosDatos.setCategoria(sc.nextLine());
+        System.out.println("La categoria no se puede modificar");
 
-        System.out.print("Nueva fecha de vencimiento (vacio si no aplica): ");
+        System.out.print("Nueva fecha de vencimiento (formato yyyy-MM-dd, vacío si no aplica): ");
         String fecha = sc.nextLine();
-        nuevosDatos.setFechaVencimiento(fecha.isEmpty() ? null : fecha);
+        if (fecha.isEmpty()) {
+            nuevosDatos.setFechaVencimiento(null);
+        } else {
+            try {
+                nuevosDatos.setFechaVencimiento(LocalDate.parse(fecha, FORMATTER));
+            } catch (DateTimeParseException e) {
+                System.out.println("Formato inválido, se dejará sin fecha.");
+                nuevosDatos.setFechaVencimiento(null);
+            }
+        }
 
         System.out.print("Nueva cantidad: ");
         nuevosDatos.setCantidad(Integer.parseInt(sc.nextLine()));
@@ -112,13 +154,8 @@ public class Main {
         lista.modificarProducto(nombre, nuevosDatos);
         System.out.println("Producto modificado.");
 
-        System.out.print("Desea agregar una imagen? (s/n): ");
-        if (sc.nextLine().equalsIgnoreCase("s")){
-            System.out.print("Ruta de la imagen (ej. /src/main/resources/images/foto.png): ");
-            String ruta = sc.nextLine();
-            agregarImagenAProducto(lista, nuevosDatos.getNombre(), ruta);
-            System.out.println("Imagen agregada.");
-        }
+        agregarImagenProducto(sc, nuevosDatos);
+
     }
 
     private static void eliminarProducto(Scanner sc, ListaProductos lista){
@@ -160,7 +197,6 @@ public class Main {
     }
 
     //Métodos auxiliares
-
     private static boolean existeProducto(ListaProductos lista, String nombre){
         Nodo actual = lista.getCabeza();
         while (actual != null){
@@ -172,14 +208,21 @@ public class Main {
         return false;
     }
 
-    private static void agregarImagenAProducto(ListaProductos lista, String nombre, String ruta){
-        Nodo actual = lista.getCabeza();
-        while (actual != null){
-            if (actual.getProducto().getNombre().equalsIgnoreCase(nombre)){
-                actual.getProducto().agregarImagen(ruta);
-                return;
+    private static void agregarImagenProducto(Scanner sc, Producto nuevosDatos) {
+        System.out.print("Desea agregar una imagen? (s/n): ");
+        if (sc.nextLine().equalsIgnoreCase("s")) {
+            System.out.print("Ruta de la imagen original (ej. C:/Users/Bryan/Desktop/foto.png): ");
+            String rutaOrigen = sc.nextLine();
+
+            System.out.print("Nombre con que se guardará (ej. foto1.png): ");
+            String nombreArchivo = sc.nextLine();
+
+            try {
+                nuevosDatos.guardarImagen(rutaOrigen, nombreArchivo);
+                System.out.println("Imagen guardada en: /src/recursos/" + nuevosDatos.getCodigo() + "/" + nombreArchivo);
+            } catch (IOException e) {
+                System.out.println("Error al guardar la imagen: " + e.getMessage());
             }
-            actual = actual.getSig();
         }
     }
 }

@@ -1,23 +1,29 @@
 package Producto;
 
+import Helpers.Categoria;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.time.LocalDate;
 
 public class Producto {
+    private String codigo;
     private String nombre;
     private double precio;
-    private String categoria;
-    private String fechaVencimiento;
+    private Categoria categoria;
+    private LocalDate fechaVencimiento;
     private int cantidad;
+    private ArrayList<String> listaImagenes;
 
-    //#####################################################################################################//
-    //Pieza de codigo temporal para hacer el codigo capaz de correr en lo que se agrega lo faltante
-    //favor quitarlo una vez ya este integrado el codigo funcional
-    private ArrayList<String> listaImagenes = new ArrayList<>();
-    public ArrayList<String> getListaImagenes() { return listaImagenes; }
-    public void agregarImagen(String ruta) { this.listaImagenes.add(ruta); }
-    //#####################################################################################################//
+    public Producto() {
+        listaImagenes = new ArrayList<>();
+    }
 
-    public Producto() {}
+    public String getCodigo() { return codigo; }
+    public void setCodigo(String codigo) { this.codigo = codigo; }
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
@@ -25,12 +31,32 @@ public class Producto {
     public double getPrecio() { return precio; }
     public void setPrecio(double precio) { this.precio = precio; }
 
-    public String getCategoria() { return categoria; }
-    public void setCategoria(String categoria) { this.categoria = categoria; }
+    public Categoria getCategoria() { return categoria; }
+    public void setCategoria(Categoria categoria) { this.categoria = categoria; }
 
-    public String getFechaVencimiento() { return fechaVencimiento; }
-    public void setFechaVencimiento(String fechaVencimiento) { this.fechaVencimiento = fechaVencimiento; }
+
+    public LocalDate getFechaVencimiento() { return fechaVencimiento; }
+    public void setFechaVencimiento(LocalDate fechaVencimiento) { this.fechaVencimiento = fechaVencimiento; }
 
     public int getCantidad() { return cantidad; }
     public void setCantidad(int cantidad) { this.cantidad = cantidad; }
+
+    public ArrayList<String> getListaImagenes() { return listaImagenes; }
+    public void guardarImagen(String rutaOrigen, String nombreArchivo) throws IOException {
+        // Directorio destino: /src/recursos/{codigo}/
+        Path directorio = Paths.get("src/recursos/" + this.codigo);
+        if (!Files.exists(directorio)) {
+            Files.createDirectories(directorio); // crea carpeta si no existe
+        }
+
+        // Ruta final del archivo
+        Path destino = directorio.resolve(nombreArchivo);
+
+        // Copiar bytes de la imagen original al destino
+        byte[] bytes = Files.readAllBytes(Paths.get(rutaOrigen));
+        Files.write(destino, bytes);
+
+        // Registrar la ruta relativa en listaImagenes
+        this.listaImagenes.add("/src/recursos/" + this.codigo + "/" + nombreArchivo);
+    }
 }
