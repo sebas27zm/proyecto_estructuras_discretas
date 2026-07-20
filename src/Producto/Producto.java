@@ -22,6 +22,16 @@ public class Producto {
         listaImagenes = new ArrayList<>();
     }
 
+    // Constructor parametrizado: permite crear un Producto completo en una sola instruccion.
+    public Producto(String nombre, double precio, Categoria categoria, LocalDate fechaVencimiento, int cantidad) {
+        this();
+        this.nombre = nombre;
+        this.precio = precio;
+        this.categoria = categoria;
+        this.fechaVencimiento = fechaVencimiento;
+        this.cantidad = cantidad;
+    }
+
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
 
@@ -58,5 +68,19 @@ public class Producto {
 
         // Registrar la ruta relativa en listaImagenes
         this.listaImagenes.add("/src/recursos/" + this.codigo + "/" + nombreArchivo);
+    }
+
+    // Representacion legible del producto, usada por ArbolProductos al listar el inventario
+    // y por el menu al mostrar resultados de busqueda.
+    @Override
+    public String toString() {
+        return "Producto{" +
+                "codigo='" + codigo + '\'' +
+                ", nombre='" + nombre + '\'' +
+                ", precio=" + precio +
+                ", categoria=" + categoria +
+                ", cantidad=" + cantidad +
+                (fechaVencimiento != null ? ", vence=" + fechaVencimiento : "") +
+                '}';
     }
 }
