@@ -1,227 +1,142 @@
-import java.io.IOException;
-import java.util.Scanner;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-
-import Helpers.Categoria;
-import Helpers.CodigoGenerator;
-import ListaProductos.ListaProductos;
+import Cliente.Cliente;
 import Producto.Producto;
-import Nodo.Nodo;
+import Tienda.Tienda;
 
+import java.util.InputMismatchException;
+import java.util.Scanner;
+
+/**
+ * Clase principal que aloja la rutina main() y el menu() de consola.
+ * Permite la interacción intuitiva con la aplicación de gestión de inventarios.
+ */
 public class Main {
 
-    // Formato esperado: yyyy-MM-dd (ejemplo: 2026-06-15)
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
     public static void main(String[] args) {
-        ListaProductos lista = new ListaProductos();
-        menu(lista);
+        Tienda miTienda = new Tienda();
+        menu(miTienda);
     }
 
-    public static void menu(ListaProductos lista){
-        Scanner sc = new Scanner(System.in);
-        int opcion;
+    public static void menu(Tienda tienda) {
+        Scanner scanner = new Scanner(System.in);
+        int opcion = 0;
 
-        do{
-            System.out.println("\n##### Menu de la aplicacion de ventas #####");
-            System.out.println("1. Insertar producto");
-            System.out.println("2. Modificar producto");
-            System.out.println("3. Eliminar producto");
-            System.out.println("4. Reporte de costos");
-            System.out.println("5. Salir");
-            System.out.print("Eleja una opcion: ");
+        System.out.println("==================================================");
+        System.out.println("  SISTEMA DE GESTIÓN DE INVENTARIOS EN LÍNEA      ");
+        System.out.println("==================================================");
 
-            opcion = Integer.parseInt(sc.nextLine());
+        do {
+            System.out.println("\n--- MENÚ PRINCIPAL ---");
+            System.out.println("1. Insertar Producto al Inventario (Árbol BST)");
+            System.out.println("2. Registrar Cliente y llenar Carrito");
+            System.out.println("3. Atender siguiente Cliente (Generar Factura)");
+            System.out.println("4. Salir");
 
-            switch (opcion){
+            opcion = leerEnteroSeguro(scanner, "Seleccione una opción: ");
+
+            switch (opcion) {
                 case 1:
-                    insertarProducto(sc, lista);
+                    insertarProducto(scanner, tienda);
                     break;
                 case 2:
-                    modificarProducto(sc, lista);
+                    registrarCliente(scanner, tienda);
                     break;
                 case 3:
-                    eliminarProducto(sc, lista);
+                    tienda.atenderSiguienteCliente();
                     break;
                 case 4:
-                    reporteCostos(lista);
-                    break;
-                case 5:
-                    System.out.println("Saliendo");
+                    System.out.println("\nCerrando el sistema... ¡Ejecución finalizada con éxito!");
                     break;
                 default:
-                    System.out.println("Opcion invalida.");
+                    System.out.println("\n[!] Opción inválida. Seleccione un número del 1 al 4.");
             }
+        } while (opcion != 4);
 
-        } while (opcion != 5);
-
-        sc.close();
+        scanner.close();
     }
 
-    private static void insertarProducto(Scanner sc, ListaProductos lista){
-        Producto p = new Producto();
+    private static void insertarProducto(Scanner scanner, Tienda tienda) {
+        System.out.println("\n-- INSERTAR PRODUCTO AL INVENTARIO --");
+        System.out.print("Ingrese el nombre del producto (Llave de búsqueda): ");
+        String nombre = scanner.nextLine();
+        double precio = leerDoubleSeguro(scanner, "Ingrese el precio del producto: $");
 
-        System.out.print("Nombre: ");
-        p.setNombre(sc.nextLine());
+        Producto nuevoProducto = new Producto();
+        nuevoProducto.setNombre(nombre);
+        nuevoProducto.setPrecio(precio);
+        nuevoProducto.setCantidad(1);
 
-        System.out.print("Precio: ");
-        p.setPrecio(Double.parseDouble(sc.nextLine()));
+        tienda.getInventario().insertar(nuevoProducto);
+        System.out.println("[+] Producto insertado correctamente en el árbol.");
+    }
 
-        System.out.println("Seleccione la categoría:");
-        for (Categoria c : Categoria.values()) {
-            System.out.println("- " + c);
+    private static void registrarCliente(Scanner scanner, Tienda tienda) {
+        System.out.println("\n-- REGISTRAR CLIENTE EN LA COLA --");
+        System.out.print("ID del cliente: "); String id = scanner.nextLine();
+        System.out.print("Nombre: "); String nombre = scanner.nextLine();
+        System.out.print("Primer Apellido: "); String ap1 = scanner.nextLine();
+        System.out.print("Segundo Apellido: "); String ap2 = scanner.nextLine();
+        System.out.print("Correo: "); String correo = scanner.nextLine();
+        System.out.print("Teléfono: "); String telefono = scanner.nextLine();
+
+        int prioridad = 0;
+        while (prioridad < 1 || prioridad > 3) {
+            prioridad = leerEnteroSeguro(scanner, "Prioridad asignada (1-Básico, 2-Afiliado, 3-Premium): ");
+            if (prioridad < 1 || prioridad > 3) System.out.println("[!] La prioridad debe ser un entero entre 1 y 3.");
         }
-        String catInput = sc.nextLine().toUpperCase();
 
-        try {
-            p.setCategoria(Categoria.valueOf(catInput));
-        } catch (IllegalArgumentException e) {
-            System.out.println("Categoría inválida, se asignará TECNOLOGIA por defecto.");
-            p.setCategoria(Categoria.TECNOLOGIA);
+        Cliente nuevoCliente = new Cliente(id, nombre, ap1, ap2, correo, telefono, prioridad);
+
+        System.out.println("\n-- LLENADO DEL CARRITO DESDE EL INVENTARIO --");
+        tienda.getInventario().listarProductos();
+
+        boolean comprando = true;
+        while (comprando) {
+            System.out.print("Ingrese el nombre exacto del producto a comprar (o 'fin' para terminar): ");
+            String busqueda = scanner.nextLine();
+
+            if (busqueda.equalsIgnoreCase("fin")) {
+                comprando = false;
+            } else {
+                Producto prodEncontrado = tienda.getInventario().buscar(busqueda);
+                if (prodEncontrado != null) {
+                    nuevoCliente.agregarProductoAlCarrito(prodEncontrado);
+                    System.out.println("[+] Producto '" + prodEncontrado.getNombre() + "' agregado a la ListaProductos personal.");
+                } else {
+                    System.out.println("[-] Producto no encontrado en el inventario de la Tienda.");
+                }
+            }
         }
 
-        // Generar código único con prefijo de categoría
-        p.setCodigo(CodigoGenerator.generarCodigoConCategoria(p.getCategoria()));
+        tienda.getColaAtencion().encolar(nuevoCliente);
+        System.out.println("[+] Cliente ingresado a la Cola de Prioridad exitosamente.");
+    }
 
-        System.out.print("Fecha de vencimiento (formato yyyy-MM-dd, vacío si no aplica): ");
-        String fecha = sc.nextLine();
-        if (fecha.isEmpty()) {
-            p.setFechaVencimiento(null);
-        } else {
+    // --- MÉTODOS DE VALIDACIÓN DE ENTRADA ---
+    private static int leerEnteroSeguro(Scanner scanner, String mensaje) {
+        while (true) {
+            System.out.print(mensaje);
             try {
-                p.setFechaVencimiento(LocalDate.parse(fecha, FORMATTER));
-            } catch (DateTimeParseException e) {
-                System.out.println("Formato inválido, se dejará sin fecha.");
-                p.setFechaVencimiento(null);
+                int numero = scanner.nextInt();
+                scanner.nextLine();
+                return numero;
+            } catch (InputMismatchException e) {
+                System.out.println("[!] Error: Entrada no válida. Debe ingresar un número entero.");
+                scanner.nextLine();
             }
         }
-
-        System.out.print("Cantidad: ");
-        p.setCantidad(Integer.parseInt(sc.nextLine()));
-
-        agregarImagenProducto(sc, p);
-
-        System.out.print("Insertar al inicio o al final? (i/f): ");
-        String pos = sc.nextLine();
-
-        if (pos.equalsIgnoreCase("i")){
-            lista.insertarAlInicio(p);
-        } else{
-            lista.insertarAlFinal(p);
-        }
-
-        System.out.println("Producto insertado.");
     }
 
-    private static void modificarProducto(Scanner sc, ListaProductos lista){
-        System.out.print("Nombre del producto a modificar: ");
-        String nombre = sc.nextLine();
-
-        //Verificar si existe antes de pedir todos los datos
-        if (!existeProducto(lista, nombre)){
-            System.out.println("Producto no encontrado.");
-            return;
-        }
-
-        Producto nuevosDatos = new Producto();
-
-        System.out.print("Nuevo nombre: ");
-        nuevosDatos.setNombre(sc.nextLine());
-
-        System.out.print("Nuevo precio: ");
-        nuevosDatos.setPrecio(Double.parseDouble(sc.nextLine()));
-
-        System.out.println("La categoria no se puede modificar");
-
-        System.out.print("Nueva fecha de vencimiento (formato yyyy-MM-dd, vacío si no aplica): ");
-        String fecha = sc.nextLine();
-        if (fecha.isEmpty()) {
-            nuevosDatos.setFechaVencimiento(null);
-        } else {
+    private static double leerDoubleSeguro(Scanner scanner, String mensaje) {
+        while (true) {
+            System.out.print(mensaje);
             try {
-                nuevosDatos.setFechaVencimiento(LocalDate.parse(fecha, FORMATTER));
-            } catch (DateTimeParseException e) {
-                System.out.println("Formato inválido, se dejará sin fecha.");
-                nuevosDatos.setFechaVencimiento(null);
-            }
-        }
-
-        System.out.print("Nueva cantidad: ");
-        nuevosDatos.setCantidad(Integer.parseInt(sc.nextLine()));
-
-        lista.modificarProducto(nombre, nuevosDatos);
-        System.out.println("Producto modificado.");
-
-        agregarImagenProducto(sc, nuevosDatos);
-
-    }
-
-    private static void eliminarProducto(Scanner sc, ListaProductos lista){
-        System.out.print("Nombre del producto a eliminar: ");
-        String nombre = sc.nextLine();
-
-        if (!existeProducto(lista, nombre)){
-            System.out.println("Producto no encontrado.");
-            return;
-        }
-
-        lista.eliminarProducto(nombre);
-        System.out.println("Producto eliminado.");
-    }
-
-    private static void reporteCostos(ListaProductos lista){
-        Nodo actual = lista.getCabeza();
-        double costoTotal = 0;
-
-        if (actual == null){
-            System.out.println("La lista esta vacia.");
-            return;
-        }
-
-        System.out.println("\n--- Reporte de Costos ---");
-
-        while (actual != null){
-            Producto p = actual.getProducto();
-            double costoProducto = p.getPrecio() * p.getCantidad();
-            costoTotal += costoProducto;
-
-            System.out.printf("%s -> %.2f x %d = %.2f%n",
-                    p.getNombre(), p.getPrecio(), p.getCantidad(), costoProducto);
-
-            actual = actual.getSig();
-        }
-
-        System.out.printf("Costo total acumulado: %.2f%n", costoTotal);
-    }
-
-    //Métodos auxiliares
-    private static boolean existeProducto(ListaProductos lista, String nombre){
-        Nodo actual = lista.getCabeza();
-        while (actual != null){
-            if (actual.getProducto().getNombre().equalsIgnoreCase(nombre)){
-                return true;
-            }
-            actual = actual.getSig();
-        }
-        return false;
-    }
-
-    private static void agregarImagenProducto(Scanner sc, Producto nuevosDatos) {
-        System.out.print("Desea agregar una imagen? (s/n): ");
-        if (sc.nextLine().equalsIgnoreCase("s")) {
-            System.out.print("Ruta de la imagen original (ej. C:/Users/Bryan/Desktop/foto.png): ");
-            String rutaOrigen = sc.nextLine();
-
-            System.out.print("Nombre con que se guardará (ej. foto1.png): ");
-            String nombreArchivo = sc.nextLine();
-
-            try {
-                nuevosDatos.guardarImagen(rutaOrigen, nombreArchivo);
-                System.out.println("Imagen guardada en: /src/recursos/" + nuevosDatos.getCodigo() + "/" + nombreArchivo);
-            } catch (IOException e) {
-                System.out.println("Error al guardar la imagen: " + e.getMessage());
+                double numero = scanner.nextDouble();
+                scanner.nextLine();
+                if (numero >= 0) return numero;
+                System.out.println("[!] Error: El precio no puede ser negativo.");
+            } catch (InputMismatchException e) {
+                System.out.println("[!] Error: Entrada no válida. Ingrese un número (ej. 1500 o 1500.50).");
+                scanner.nextLine();
             }
         }
     }
